@@ -1,0 +1,1503 @@
+import pygame
+from random import randint
+import random, math
+from utils.matriz import matriz_efectividad
+from utils.pokattack import (pokemon_attack_kanto, pokemon_attack_johto, pokemon_attack_hoenn,
+pokemon_attack_sinnoh, pokemon_attack_teselia, pokemon_attack_kalos, pokemon_attack_alola, pokemon_attack_unknown, 
+pokemon_attack_galar)
+from utils.pokdefense import (pokemon_defense_kanto, pokemon_defense_johto, pokemon_defense_hoenn,
+                              pokemon_defense_sinnoh, pokemon_defense_teselia, pokemon_defense_kalos, pokemon_defense_alola, 
+                              pokemon_defense_unknown, pokemon_defense_galar)
+from utils.pokhp import (pokemon_hp_kanto, pokemon_hp_johto, pokemon_hp_hoenn,
+                         pokemon_hp_sinnoh, pokemon_hp_teselia, pokemon_hp_kalos, pokemon_hp_alola, 
+                         pokemon_hp_unknown, pokemon_hp_galar)
+from utils.poktype import (pokemon_type_kanto1, pokemon_type_kanto2, pokemon_type_johto1,
+                           pokemon_type_johto2, pokemon_type_hoenn1, pokemon_type_hoenn2,
+                           pokemon_type_sinnoh1, pokemon_type_sinnoh2, pokemon_type_teselia1,
+                           pokemon_type_teselia2, pokemon_type_kalos1, pokemon_type_kalos2,
+                           pokemon_type_alola1, pokemon_type_alola2, pokemon_type_unknown1, pokemon_type_unknown2, 
+                           pokemon_type_galar1, pokemon_type_galar2)
+from utils.moves import Move, moves_db
+from utils.moves2 import MoveR, moves_dbR
+WIDTH = 1200#900
+HEIGHT = 700#600
+
+BLACK = (0,0,0)
+WHITE = (255,255,255)
+RED = (255,0,0)
+GREEN = (0,255,0)
+BLUE = (0,0,255)
+YELLOW = (255,255,0)
+
+
+pygame.init()
+pygame.mixer.init()
+screen = pygame.display.set_mode((WIDTH,HEIGHT))
+pygame.display.set_caption("Pokemon combat")
+clock = pygame.time.Clock()
+
+def draw_text1(surface, text, size, x, y):
+   font = pygame.font.SysFont("serif", size)
+   text_surface = font.render(text, True, WHITE)
+   text_rect = text_surface.get_rect()
+   text_rect.midtop = (x, y)
+   surface.blit(text_surface, text_rect)
+
+def draw_text2(surface, text, size, x, y):
+   font = pygame.font.SysFont("serif", size)
+   text_surface = font.render(text, True, BLACK)
+   text_rect = text_surface.get_rect()
+   text_rect.midtop = (x, y)
+   surface.blit(text_surface, text_rect)
+
+def draw_hp_bar(surface, x, y, percentage):
+   BAR_LENGHT = 200
+   BAR_HEIGHT = 10
+   fill = (percentage / 100) * BAR_LENGHT
+   border = pygame.Rect(x, y, BAR_LENGHT, BAR_HEIGHT)
+   fill = pygame.Rect(x, y, fill, BAR_HEIGHT)
+   pygame.draw.rect(surface, GREEN, fill)
+   pygame.draw.rect(surface, WHITE, border, 2)
+
+def draw_hp_bar2(surface, x, y, percentage):
+   BAR_LENGHT = 200
+   BAR_HEIGHT = 10
+   fill = (percentage / 100) * BAR_LENGHT
+   border = pygame.Rect(x, y, BAR_LENGHT, BAR_HEIGHT)
+   fill = pygame.Rect(x, y, fill, BAR_HEIGHT)
+   pygame.draw.rect(surface, YELLOW, fill)
+   pygame.draw.rect(surface, WHITE, border, 2)
+
+def draw_hp_bar3(surface, x, y, percentage):
+   BAR_LENGHT = 200
+   BAR_HEIGHT = 10
+   fill = (percentage / 100) * BAR_LENGHT
+   border = pygame.Rect(x, y, BAR_LENGHT, BAR_HEIGHT)
+   fill = pygame.Rect(x, y, fill, BAR_HEIGHT)
+   pygame.draw.rect(surface, RED, fill)
+   pygame.draw.rect(surface, WHITE, border, 2)
+
+player_shields = 2
+
+class Pokemon(pygame.sprite.Sprite):
+   def __init__(self,reg_int,team_int,img_int = None,pc=500):
+      super().__init__()
+      self.reg_int = reg_int
+      self.img_int = img_int
+      if reg_int <= 151:
+         self.img_int = randint(0,150)
+         self.image = pokemon_images_kanto[self.img_int]
+         self.type1 = pokemon_type_kanto1[self.img_int]
+         self.type2 = pokemon_type_kanto2[self.img_int]
+         self.hp = pokemon_hp_kanto[self.img_int]
+         self.defense = pokemon_defense_kanto[self.img_int]
+         self.attack = pokemon_attack_kanto[self.img_int]
+      elif reg_int <= 252:
+         self.img_int = randint(0,99)
+         self.image = pokemon_images_johto[self.img_int]
+         self.type1 = pokemon_type_johto1[self.img_int]
+         self.type2 = pokemon_type_johto2[self.img_int]
+         self.hp = pokemon_hp_johto[self.img_int]
+         self.defense = pokemon_defense_johto[self.img_int]
+         self.attack = pokemon_attack_johto[self.img_int]
+      elif reg_int <= 388:
+         self.img_int = randint(0,134)
+         self.image = pokemon_images_hoenn[self.img_int]
+         self.type1 = pokemon_type_hoenn1[self.img_int]
+         self.type2 = pokemon_type_hoenn2[self.img_int]
+         self.hp = pokemon_hp_hoenn[self.img_int]
+         self.defense = pokemon_defense_hoenn[self.img_int]
+         self.attack = pokemon_attack_hoenn[self.img_int]
+      elif reg_int <= 496:
+         self.img_int = randint(0,106)
+         self.image = pokemon_images_sinnoh[self.img_int]
+         self.type1 = pokemon_type_sinnoh1[self.img_int]
+         self.type2 = pokemon_type_sinnoh2[self.img_int]
+         self.hp = pokemon_hp_sinnoh[self.img_int]
+         self.defense = pokemon_defense_sinnoh[self.img_int]
+         self.attack = pokemon_attack_sinnoh[self.img_int]
+      elif reg_int <= 653:
+         self.img_int = randint(0,155)
+         self.image = pokemon_images_teselia[self.img_int]
+         self.type1 = pokemon_type_teselia1[self.img_int]
+         self.type2 = pokemon_type_teselia2[self.img_int]
+         self.hp = pokemon_hp_teselia[self.img_int]
+         self.defense = pokemon_defense_teselia[self.img_int]
+         self.attack = pokemon_attack_teselia[self.img_int]
+      elif reg_int <= 726:
+         self.img_int = randint(0,71)
+         self.image = pokemon_images_kalos[self.img_int]
+         self.type1 = pokemon_type_kalos1[self.img_int]
+         self.type2 = pokemon_type_kalos2[self.img_int]
+         self.hp = pokemon_hp_kalos[self.img_int]
+         self.defense = pokemon_defense_kalos[self.img_int]
+         self.attack = pokemon_attack_kalos[self.img_int]
+      elif reg_int <= 831:
+         self.img_int = randint(0,103)
+         self.image = pokemon_images_alola[self.img_int]
+         self.type1 = pokemon_type_alola1[self.img_int]
+         self.type2 = pokemon_type_alola2[self.img_int]
+         self.hp = pokemon_hp_alola[self.img_int]
+         print(self.img_int)
+         self.defense = pokemon_defense_alola[self.img_int]
+         self.attack = pokemon_attack_alola[self.img_int]
+      elif reg_int <= 833:
+         self.img_int = randint(0,1)
+         self.image = pokemon_images_unknown[self.img_int]
+         self.type1 = pokemon_type_unknown1[self.img_int]
+         self.type2 = pokemon_type_unknown2[self.img_int]
+         self.hp = pokemon_hp_unknown[self.img_int]
+         self.defense = pokemon_defense_unknown[self.img_int]
+         self.attack = pokemon_attack_unknown[self.img_int]
+      elif reg_int <= 942:
+         self.img_int = randint(0,107)
+         self.image = pokemon_images_galar[self.img_int]
+         self.type1 = pokemon_type_galar1[self.img_int]
+         self.type2 = pokemon_type_galar2[self.img_int]
+         self.hp = pokemon_hp_galar[self.img_int]
+         self.defense = pokemon_defense_galar[self.img_int]
+         self.attack = pokemon_attack_galar[self.img_int]
+      else:
+         raise ValueError("img_int fuera de rango")
+      #self.image.set_colorkey(WHITE)
+      self.rect = self.image.get_rect()
+      self.team_int = team_int
+      if self.team_int == 0:
+         self.rect.bottomleft = 200,450
+      else:
+         self.rect.bottomleft = 600,250
+      self.posible_moves = []
+      self.posible_moves2 = []
+      for m in moves_db:
+         if self.type1 == moves_db[m].m_type:
+            self.posible_moves.append(m)
+         if self.type2 != 18:
+            if self.type2 == moves_db[m].m_type:
+               self.posible_moves.append(m)
+      for n in moves_dbR:
+         if self.type1 == moves_dbR[n].m_type:
+            self.posible_moves2.append(n)
+         if self.type2 != 18:
+            if self.type2 == moves_dbR[n].m_type:
+               self.posible_moves2.append(n)
+      self.moves = [random.choice(self.posible_moves),random.choice(self.posible_moves2)]
+      self.pc = pc
+      self.ultimo_ataque = 0
+      self.tiempo_entre_ataques = 1100#milisegs
+      self.speed = 0
+      if self.team_int == 1:
+         self.ata_recar_enem = 0
+      self.start_time = 0
+      self.counter = True
+
+
+   def shield_phase(self,screen,gestor_juego, op_pokemon, player_pokemon,time):
+       WAIT_TIME = time*1000 #11 o 5 segi¿undos etc
+       self.start_time = pygame.time.get_ticks()
+       blocked = False #(unboundlocalerror)
+
+       waiting = True
+       while waiting:
+          now = pygame.time.get_ticks()
+          elapsed = now - self.start_time
+
+          #Dibujar
+          screen.fill(BLACK)
+          all_sprites.draw(screen)
+          pokeballs.update()
+
+          type_pokemon.draw(screen)
+          type2_pokemon.draw(screen)
+          pokeballs.draw(screen)
+          for pok in all_sprites:
+             if pok.team_int == 0:
+                if pok.hp/player_pokemon_hp > 0.5:
+                   draw_hp_bar(screen,pok.rect.x,pok.rect.y,(pok.hp/(player_pokemon_hp))*100)
+                elif pok.hp/player_pokemon_hp > 0.20:
+                   draw_hp_bar2(screen,pok.rect.x,pok.rect.y,(pok.hp/(player_pokemon_hp))*100)
+                else:
+                   draw_hp_bar3(screen,pok.rect.x,pok.rect.y,(pok.hp/(player_pokemon_hp))*100)
+                draw_text2(screen,f"{int(pok.hp)}/{player_pokemon_hp}",10,pok.rect.centerx,pok.rect.y)
+                draw_text1(screen,"ATTACK:",10,pok.rect.x,480)
+                draw_text1(screen,f"Pokemones: {len(player_pokemon_list)}",15,pok.rect.x,495)
+             else:
+                if pok.hp/op_pokemon_hp > 0.5:
+                   draw_hp_bar(screen,pok.rect.x,pok.rect.y,(pok.hp/op_pokemon_hp)*100)
+                elif pok.hp/op_pokemon_hp > 0.20:
+                   draw_hp_bar2(screen,pok.rect.x,pok.rect.y,(pok.hp/op_pokemon_hp)*100)
+                else:
+                   draw_hp_bar3(screen,pok.rect.x,pok.rect.y,(pok.hp/op_pokemon_hp)*100)
+                draw_text2(screen,f"{int(pok.hp)}/{op_pokemon_hp}",10,pok.rect.centerx,pok.rect.y)
+                draw_text1(screen,"ATTACK:",10,pok.rect.x,280)
+                draw_text1(screen,f"Pokemones: {len(op_pokemon_list)}",15,pok.rect.x,295)
+          draw_text1(screen,f"{(WAIT_TIME - elapsed)//1000}",40,WIDTH//2,HEIGHT//2-40)
+          if blocked:
+             screen.blit(shield_img,((WIDTH//2) -shield_img.get_width()//2, HEIGHT*2//3 -40))   
+          elif gestor_juego.player_shields > 0:
+             draw_text1(screen, "Attack incoming! Use shield?", 20, WIDTH//2, HEIGHT//2)
+             screen.blit(shield_img,((WIDTH//2) -(shield_img.get_width()//2), HEIGHT*2//3 -40))
+             draw_text1(screen, f"Shields: {gestor_juego.player_shields}", 20, WIDTH//2, HEIGHT//2 + 40)
+          else:
+             draw_text1(screen, "Attack incoming!", 20, WIDTH//2, HEIGHT//2)
+             draw_text1(screen, "No shield left!", 20, WIDTH//2, HEIGHT//2 + 20)
+
+          #2 eventos
+          for event in pygame.event.get():
+             if event.type == pygame.QUIT:
+                pygame.quit()
+
+             # Solo revisar input si tiene escudos
+             if gestor_juego.player_shields > 0:
+                if not blocked:
+                   if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                      gestor_juego.player_shields -= 1
+                      blocked = True
+                      #waiting = False
+
+                   if event.type == pygame.MOUSEBUTTONDOWN:
+                      mouse_x, mouse_y = event.pos
+                      dist = math.sqrt((mouse_x - WIDTH//2)**2 + (mouse_y - HEIGHT*2//3 - 60)**2)
+                      if dist <= 100: # radio del escudo
+                         gestor_juego.player_shields -= 1
+                         blocked = True
+                         #waiting = False
+
+          # Condición de salida por tiempo
+          if elapsed >= WAIT_TIME:
+             waiting = False
+
+          pygame.display.update()
+          clock.tick(60)
+
+       if not blocked:
+          damage = damageR(op_pokemon,player_pokemon,60)
+          player_pokemon.hp -= damage
+
+
+   def update(self):
+      if self.team_int == 1:
+         for pok in all_sprites:
+            if pok.team_int == 0:
+               if pygame.time.get_ticks() - self.ultimo_ataque > self.tiempo_entre_ataques:
+                  pok.hp -= damage(self,pok)
+                  self.ultimo_ataque = pygame.time.get_ticks()
+                  self.ata_recar_enem += moves_db[self.moves[0]].incremento_energia
+                  #print(self.ata_recar_enem)
+                  #print(moves_dbR[self.moves[1]].energy_cost)
+                  if self.ata_recar_enem >= moves_dbR[self.moves[1]].energy_cost:
+                     #print(ataque_recargado_time[moves_dbR[self.moves[1]].m_type])
+                     self.shield_phase(screen,gestor_juego,self, pok, ataque_recargado_time[moves_dbR[self.moves[1]].m_type])
+                     self.ata_recar_enem = 0
+
+      # else:
+      #    for poke in all_sprites:
+   #          if poke.team_int == 1:
+   #             if pygame.time.get_ticks() - self.ultimo_ataque > self.tiempo_entre_ataques:
+   #                poke.hp -= damage(player_pokemon,poke)
+   #                self.ultimo_ataque = pygame.time.get_ticks()
+               
+            
+
+      if self.hp <= 0:
+         if self.team_int ==0:
+            player_pokemon_list.remove(self)
+            pokeball1.int -= 1
+         else:
+            op_pokemon_list.remove(self)
+            pokeball2.int -= 1
+            
+         self.kill()
+
+   
+
+class Type(pygame.sprite.Sprite):
+   def __init__(self,img_int,x,y,team_int,scx,scy):
+      super().__init__()
+      self.img_int = img_int
+      if 0 <= img_int < len(type_images):
+         self.image = pygame.transform.scale(type_images[img_int],(scx,scy))
+         #self.image.set_colorkey(WHITE)
+      else:
+         raise ValueError("img_int fuera de rango")
+      self.image.set_colorkey(WHITE)
+      self.rect = self.image.get_rect()
+      self.team_int = team_int
+      self.rect.x = x
+      self.rect.y = y
+
+class Pokeball(pygame.sprite.Sprite):
+   def __init__(self,team_int,img_int):
+      super().__init__()
+      self.int = img_int
+      self.image1 = pygame.image.load("img/text/1.png")
+      self.image2 = pygame.image.load("img/text/2.png")
+      self.image3 = pygame.image.load("img/text/3.png")
+      self.image = pygame.image.load("img/text/3.png")
+      
+      self.image.set_colorkey(WHITE)
+      self.rect = self.image.get_rect()
+      self.team_int = team_int
+      if self.team_int == 0:
+         self.rect.topright = 355,220
+      else:
+         self.rect.topright = 755,20
+
+   def update(self):
+      if self.int == 2:
+         self.image = self.image2
+      if self.int == 1:
+         self.image = self.image1
+      self.image.set_colorkey(WHITE)
+
+class Type_R(pygame.sprite.Sprite):
+   def __init__(self,entero,x,y,speed_x=0,speed_y=0):
+      super().__init__()
+      self.num = entero
+      if 0 <= entero <= len(type_images):
+         self.image = type_images[entero]
+         self.image = pygame.transform.scale(self.image,(60,60)).convert()
+      else:
+         raise ValueError("entero fuera del rango")
+      self.image.set_colorkey(WHITE)
+      self.rect = self.image.get_rect()
+      self.rect.x = x
+      self.rect.y = y
+      self.pos_x = float(x)
+      self.pos_y = float(y)
+      self.speed_x = speed_x
+      self.speed_y = speed_y
+      self.b = randint(1,2)
+            
+      self.start_time = pygame.time.get_ticks()
+      self.jumping = True
+      self.y_gravity = 0.5
+      self.jump_height = 15
+      self.y_velocity = self.jump_height
+      self.c = 0.5
+      self.velocidad_y = 0
+      self.d = 0.1
+
+   def update(self):
+      now = pygame.time.get_ticks() - self.start_time
+      if self.num == 0:
+         self.pos_x += self.speed_x
+         self.pos_y += self.speed_y
+         if now >= 1200:
+            self.kill()
+      elif self.num == 1:
+         if now >= 1500:
+            self.kill()
+      elif self.num == 2:
+         self.pos_x -= 2.5
+         self.pos_y += self.b
+         if now >= 4000:
+            self.kill()
+      elif self.num == 3:
+         if now >= 1000:
+            self.kill()
+      elif self.num == 4:
+         if self.jumping:
+            self.pos_y -= self.y_velocity
+            self.y_velocity -= self.y_gravity
+            if self.y_velocity < -self.jump_height:
+               self.jumping = False
+               self.y_velocity = self.jump_height
+         else:
+            self.pos_y += 6
+         if now >= 3000:
+            self.kill()
+      elif self.num == 5:
+         self.pos_x += 3
+         self.pos_y += 4
+         if now >= 2000:
+            self.kill()
+      elif self.num == 6:
+         self.pos_x += 3
+         if now >= 2000:
+            self.kill()
+      elif self.num == 7:
+         if now >= 1000:
+            self.kill()
+      elif self.num == 8:
+         if now >= 1000:
+            self.kill()
+      elif self.num == 9:
+         self.pos_x -= 3.5
+         self.pos_y += 3
+         if now >= 2000:
+            self.kill()
+      elif self.num == 10:
+         self.pos_x += 4
+         if now >= 2000:
+            self.kill()
+      elif self.num == 11:
+         self.pos_y += 6
+         if now >= 4000:
+            self.kill()
+      elif self.num == 12:
+         if now >= 1000:
+            self.kill()
+      elif self.num == 13:
+         if now >= 2000:
+            self.kill()
+      elif self.num == 14:
+         if now >= 1000:
+            self.kill()
+      elif self.num == 15:
+         if now >= 1000:
+            self.kill()
+      elif self.num == 16:
+         self.pos_y += 4
+         if now >= 4000:
+            self.kill()
+      else:
+         self.pos_x += 3
+         self.pos_y += 3
+         if now >= 3000:
+            self.kill()
+      self.rect.x = int(self.pos_x)
+      self.rect.y = int(self.pos_y)
+        
+
+
+class Boton(pygame.sprite.Sprite):
+   def __init__(self,entero):
+      super().__init__()
+      self.num = entero
+      if 0 <= entero <= len(type_images):
+         self.image = type_images[entero]
+         self.image = pygame.transform.scale(self.image,(60,60))
+      self.image.set_colorkey(WHITE)
+      self.start_time = pygame.time.get_ticks()
+      self.objetos_creados = 0
+      self.ultima_creacion = 0
+      self.objetos = []
+      self.b = 0
+      self.c = 40
+      self.d = 1
+      self.indice = 0
+      self.objetos_creados_en_direccion = 1
+      self.normal_centers = [(750,HEIGHT//2 + 20), (720,HEIGHT*3//4 + 20),(WIDTH//2 + 50,(HEIGHT*3//4 + HEIGHT//2)//2),(WIDTH//2 + self.image.get_width()//2,HEIGHT*2//3),(WIDTH//2-200,HEIGHT*3//4),(WIDTH//3+80,HEIGHT//2+20),(WIDTH//3+80,HEIGHT*3//4+30),(WIDTH//2,HEIGHT//2+20),(WIDTH//2+120,HEIGHT*3//4)]
+      self.siniestro_path = [3,10,5,12,4.5]
+      
+      
+   def update(self):
+      now = pygame.time.get_ticks() - self.start_time
+      if self.num == 0:
+         if self.objetos_creados < 45:
+            if now - self.ultima_creacion >= 1000:
+               self.ultima_creacion = now
+               for i in range(5):
+                  angulo_grados = 90 - i * 72
+                  angulo_rad = math.radians(angulo_grados) 
+                  x = self.normal_centers[self.b][0]
+                  y = self.normal_centers[self.b][1]
+                  velocidad = 1
+                  vx = velocidad * math.cos(angulo_rad)
+                  vy = velocidad * math.sin(angulo_rad)
+                  typen = Type_R(0,x,y,vx,vy)
+                  ataque_recargado_sprites.add(typen)
+                  self.objetos.append(typen)
+                  self.objetos_creados += 1
+                  #self.indice += 1
+               self.b += 1
+      elif self.num == 1:
+         if self.objetos_creados < 23:
+            if now - self.ultima_creacion >= 500:
+               self.ultima_creacion = now
+               typen = Type_R(1,randint(WIDTH//2-100,WIDTH//2+100),randint(HEIGHT//2-100,HEIGHT//2+100),0)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+      elif self.num == 2:
+         if self.objetos_creados < 23:
+            if now - self.ultima_creacion >= 200:
+               self.ultima_creacion = now
+               typen = Type_R(2,WIDTH *2//3,HEIGHT//3 + randint(-self.c,self.c),0)
+               self.c += randint(-5,5)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+      elif self.num == 3:
+         if self.objetos_creados < 30:
+            if now - self.ultima_creacion >= 500:
+               self.ultima_creacion = now
+               typen = Type_R(3,randint(WIDTH//2-100,WIDTH//2+100),randint(HEIGHT//2-100,HEIGHT//2+100),0)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+      elif self.num == 4:
+         if self.objetos_creados < 40:
+            if now - self.ultima_creacion >= 500:
+               self.ultima_creacion = now
+               typen = Type_R(4,WIDTH//3+self.b,HEIGHT*2//3+150,0)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+               self.b += self.c
+               if self.b >= 400:
+                  self.c *=-1
+                  self.b += self.c
+                  if self.b <= 0:
+                     self.c *=-1
+                     self.b += self.c
+      elif self.num == 5:
+         if self.objetos_creados < 32:
+            if now -self.ultima_creacion >= 1000:
+               self.ultima_creacion = now
+               for i in range(4):
+                  typen = Type_R(5,WIDTH//3-50-25*i,50*i,0)
+                  ataque_recargado_sprites.add(typen)
+                  self.objetos.append(typen)
+                  self.objetos_creados += 1
+      elif self.num == 6:
+         if self.objetos_creados < 28:
+            if now - self.ultima_creacion >= 300:
+               self.ultima_creacion = now
+               typen = Type_R(6,WIDTH//3-50,HEIGHT*2//3 + randint(-self.c,self.c),0)
+               self.c + randint(-5,5)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+      elif self.num == 7:
+         if self.objetos_creados < 25:
+            if now - self.ultima_creacion >= 1000:
+               self.ultima_creacion = now
+               if self.objetos_creados % 5 == 0:
+                  for i in range(2):
+                     typen = Type_R(7,WIDTH//2-60+i*60,HEIGHT*2//3,0)
+                     ataque_recargado_sprites.add(typen)
+                     self.objetos.append(typen)
+                     self.objetos_creados += 1
+               else:
+                  if (self.objetos_creados + 1) % 2 == 0:
+                     for i in range(3):
+                        typen = Type_R(7,WIDTH//3+60+i*60,HEIGHT*2//3+100,0)
+                        ataque_recargado_sprites.add(typen)
+                        self.objetos.append(typen)
+                        self.objetos_creados += 1
+                  else:
+                     for i in range(3):
+                        typen = Type_R(7,WIDTH*2//3-200+i*60,HEIGHT*2//3+100,0)
+                        ataque_recargado_sprites.add(typen)
+                        self.objetos.append(typen)
+                        self.objetos_creados += 1
+      elif self.num == 8:
+         if self.objetos_creados < 28:
+            if now - self.ultima_creacion >= 500:
+               self.ultima_creacion = now
+               typen = Type_R(8,randint(WIDTH//2-100,WIDTH//2+100),randint(HEIGHT//2-100,HEIGHT//2+100),0)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+      elif self.num == 9:
+         if self.objetos_creados < 28:
+            if now - self.ultima_creacion >= 200:
+               self.ultima_creacion = now
+               typen = Type_R(9,WIDTH*2//3,HEIGHT//3 + randint(-self.c,self.c),0)
+               self.c += randint(-5,5)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+      elif self.num == 10:
+         if self.objetos_creados < 23:
+            if now - self.ultima_creacion >= 200:
+               self.ultima_creacion = now
+               typen = Type_R(10,WIDTH//3-50,HEIGHT//2 + randint(-self.c,self.c),0)
+               self.c += randint(-5,5)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+      elif self.num == 11:
+         if self.objetos_creados < 28:
+            if now - self.ultima_creacion >= 200:
+               self.ultima_creacion = now
+               typen = Type_R(11,WIDTH//3+100+50*self.b,HEIGHT//3,0)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+               self.objetos_creados_en_direccion += 1
+               self.b += self.d
+               if self.objetos_creados_en_direccion == 4:
+                  self.d *=-1
+                  self.objetos_creados_en_direccion = 1
+                    
+      elif self.num == 12:
+         if self.objetos_creados < 50:
+            if now - self.ultima_creacion >= 300:
+               self.ultima_creacion = now
+               angulo = 2* math.pi * self.indice/12
+               x = WIDTH//2 + 100*math.cos(2*math.pi -angulo)
+               y = HEIGHT//2 + 100*math.sin(2*math.pi -angulo)
+               typen = Type_R(12,x,y,0)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+               self.indice += 1
+               if self.indice >= 12:
+                  self.indice=0
+      elif self.num == 13:
+         if self.objetos_creados < 32:
+            
+            if now - self.ultima_creacion >= 1000:
+               self.ultima_creacion = now
+               for i in range(4):
+                  angulo = 2* math.pi * (self.siniestro_path[self.indice % 5] + i)/12
+                  x = WIDTH//2 + 70*math.cos(2*math.pi -angulo)
+                  y = HEIGHT*2//3 + 70*math.sin(2*math.pi -angulo)
+                  typen = Type_R(13,x,y,0)
+                  ataque_recargado_sprites.add(typen)
+                  self.objetos.append(typen)
+                  self.objetos_creados += 1
+               self.indice += 1
+               
+      elif self.num == 14:
+         if self.objetos_creados < 50:
+            if now - self.ultima_creacion >= 300:
+               self.ultima_creacion = now
+               angulo = 2* math.pi * self.indice/12
+               x = WIDTH//2 + 100*math.cos(2*math.pi -angulo)
+               y = HEIGHT*2//3 + 100*math.sin(2*math.pi -angulo)
+               typen = Type_R(14,x,y,0)
+               ataque_recargado_sprites.add(typen)
+               self.objetos.append(typen)
+               self.objetos_creados += 1
+               self.indice += 1
+               if self.indice >= 12:
+                  self.indice=0
+      elif self.num == 15:
+         if self.objetos_creados < 24:
+            if now - self.ultima_creacion >= 1500:
+               self.ultima_creacion = now
+               if (self.objetos_creados + 4) % 8 == 0:
+                  for i in range(4):
+                     typen = Type_R(15,WIDTH//2-50+30*i,HEIGHT//2-80+40*i,0)
+                     ataque_recargado_sprites.add(typen)
+                     self.objetos.append(typen)
+                     self.objetos_creados += 1
+               else:
+                  for i in range(4):
+                     typen = Type_R(15,WIDTH//2+50-30*i,HEIGHT//2-80+40*i,0)
+                     ataque_recargado_sprites.add(typen)
+                     self.objetos.append(typen)
+                     self.objetos_creados += 1
+      elif self.num == 16:
+         if self.objetos_creados < 32:
+            if now - self.ultima_creacion >= 1000:
+               self.ultima_creacion = now
+               for i in range(4):
+                  typen = Type_R(16,WIDTH//2-100+60*i,HEIGHT//3-randint(0,25),0)
+                  ataque_recargado_sprites.add(typen)
+                  self.objetos.append(typen)
+                  self.objetos_creados += 1
+      else:
+         if self.objetos_creados < 35:
+            if now - self.ultima_creacion >= 1500:
+               self.ultima_creacion = now
+               for i  in range(5):
+                  angulo = 2* math.pi * (self.indice+1)/5
+                  x = 400 + 30*math.cos(angulo)
+                  y = 300 + 30*math.sin(angulo)
+                  typen = Type_R(17,x,y,0)
+                  ataque_recargado_sprites.add(typen)
+                  self.objetos.append(typen)
+                  self.objetos_creados += 1
+                  self.indice += 1
+
+class Shield(pygame.sprite.Sprite):
+   def __init__(self):
+      super().__init__()
+      self.image = pygame.transform.scale(pygame.image.load("img/shield.png"),(60,60))
+      self.image.set_colorkey(WHITE)
+      self.start_time = pygame.time.get_ticks()
+      
+
+class GestorJuego():
+    def __init__(self,state="normal"):
+        self.state = state
+        self.player_shields = 2
+        
+
+
+pokemon_images_kanto = []
+pokemon_list_kanto = [
+   "img/pok/kanto/bulbasaur.png","img/pok/kanto/ivysaur.png","img/pok/kanto/venusaur.png",
+   "img/pok/kanto/charmander.png","img/pok/kanto/charmeleon.png","img/pok/kanto/charizard.png",
+   "img/pok/kanto/squirtle.png","img/pok/kanto/wartortle.png","img/pok/kanto/blastoise.png",
+   "img/pok/kanto/caterpie.png","img/pok/kanto/metapod.png","img/pok/kanto/butterfree.png", #10 metap
+   "img/pok/kanto/weedle.png","img/pok/kanto/kakuna.png","img/pok/kanto/beedrill.png",
+   "img/pok/kanto/pidgey.png","img/pok/kanto/pidgeotto.png","img/pok/kanto/pidgeot.png",
+   "img/pok/kanto/rattata.png","img/pok/kanto/raticate.png","img/pok/kanto/spearow.png", #20 spearow
+   "img/pok/kanto/fearow.png","img/pok/kanto/ekans.png","img/pok/kanto/arbok.png",
+   "img/pok/kanto/pikachu.png","img/pok/kanto/raichu.png","img/pok/kanto/sandshrew.png",
+   "img/pok/kanto/sandslash.png","img/pok/kanto/nidoran1.png","img/pok/kanto/nidorino.png",
+   "img/pok/kanto/nidoking.png","img/pok/kanto/nidoran2.png","img/pok/kanto/nidorina.png", #30 nidoking
+   "img/pok/kanto/nidoqueen.png","img/pok/kanto/clefairy.png","img/pok/kanto/clefable.png",
+   "img/pok/kanto/vulpix.png","img/pok/kanto/ninetales.png","img/pok/kanto/jigglypuff.png",
+   "img/pok/kanto/wigglytuff.png","img/pok/kanto/zubat.png","img/pok/kanto/golbat.png", #40 zubat
+   "img/pok/kanto/oddish.png","img/pok/kanto/gloom.png","img/pok/kanto/vileplume.png",
+   "img/pok/kanto/paras.png","img/pok/kanto/parasect.png","img/pok/kanto/venonat.png",
+   "img/pok/kanto/venomoth.png","img/pok/kanto/diglett.png","img/pok/kanto/dugtrio.png", #50 dugtrio
+   "img/pok/kanto/meowth.png","img/pok/kanto/persian.png","img/pok/kanto/psyduck.png",
+   "img/pok/kanto/golduck.png","img/pok/kanto/mankey.png","img/pok/kanto/primeape.png",
+   "img/pok/kanto/growlithe.png","img/pok/kanto/arcanine.png","img/pok/kanto/poliwag.png", 
+   "img/pok/kanto/poliwhirl.png","img/pok/kanto/poliwrath.png","img/pok/kanto/abra.png", #60 poliwhi
+   "img/pok/kanto/kadabra.png","img/pok/kanto/alakazam.png","img/pok/kanto/machop.png",
+   "img/pok/kanto/machoke.png","img/pok/kanto/machamp.png","img/pok/kanto/bellsprout.png",
+   "img/pok/kanto/weepinbell.png","img/pok/kanto/victreebel.png","img/pok/kanto/tentacool.png", #70 victr
+   "img/pok/kanto/tentacruel.png","img/pok/kanto/geodude.png","img/pok/kanto/graveler.png",
+   "img/pok/kanto/golem.png","img/pok/kanto/ponyta.png","img/pok/kanto/rapidash.png",
+   "img/pok/kanto/slowpoke.png","img/pok/kanto/slowbro.png","img/pok/kanto/magnemite.png", # 80 magnemite
+   "img/pok/kanto/magneton.png","img/pok/kanto/farfetchd.png","img/pok/kanto/doduo.png",
+   "img/pok/kanto/dodrio.png","img/pok/kanto/seel.png","img/pok/kanto/dewgong.png",
+   "img/pok/kanto/grimer.png","img/pok/kanto/muk.png","img/pok/kanto/shellder.png",
+   "img/pok/kanto/cloyster.png","img/pok/kanto/gastly.png","img/pok/kanto/haunter.png",  # 90 cloyster
+   "img/pok/kanto/gengar.png","img/pok/kanto/onix.png","img/pok/kanto/drowzee.png",
+   "img/pok/kanto/hypno.png","img/pok/kanto/krabby.png","img/pok/kanto/kingler.png",
+   "img/pok/kanto/voltorb.png","img/pok/kanto/electrode.png","img/pok/kanto/exeggcute.png", # 100 electrode
+   "img/pok/kanto/exeggutor.png","img/pok/kanto/cubone.png","img/pok/kanto/marowak.png",
+   "img/pok/kanto/hitmonlee.png","img/pok/kanto/hitmonchan.png","img/pok/kanto/lickitung.png",
+   "img/pok/kanto/koffing.png","img/pok/kanto/weezing.png","img/pok/kanto/rhyhorn.png", # 110 rhyhorn
+   "img/pok/kanto/rhydon.png","img/pok/kanto/chansey.png","img/pok/kanto/tangela.png",
+   "img/pok/kanto/kangaskhan.png","img/pok/kanto/horsea.png","img/pok/kanto/seadra.png",
+   "img/pok/kanto/goldeen.png","img/pok/kanto/seaking.png","img/pok/kanto/staryu.png",
+   "img/pok/kanto/starmie.png","img/pok/kanto/mrmime.png","img/pok/kanto/scyther.png", # 120 starmie
+   "img/pok/kanto/jynx.png","img/pok/kanto/electabuzz.png","img/pok/kanto/magmar.png",
+   "img/pok/kanto/pinsir.png","img/pok/kanto/tauros.png","img/pok/kanto/magikarp.png",
+   "img/pok/kanto/gyarados.png","img/pok/kanto/lapras.png","img/pok/kanto/ditto.png", # 130 lapras
+   "img/pok/kanto/eevee.png","img/pok/kanto/vaporeon.png","img/pok/kanto/jolteon.png",
+   "img/pok/kanto/flareon.png","img/pok/kanto/porygon.png","img/pok/kanto/omanyte.png",
+   "img/pok/kanto/omastar.png","img/pok/kanto/kabuto.png","img/pok/kanto/kabutops.png", # 140 kabutops
+   "img/pok/kanto/aerodactyl.png","img/pok/kanto/snorlax.png","img/pok/kanto/articuno.png",
+   "img/pok/kanto/zapdos.png","img/pok/kanto/moltres.png","img/pok/kanto/dratini.png",
+   "img/pok/kanto/dragonair.png","img/pok/kanto/dragonite.png","img/pok/kanto/mewtwo.png",
+   "img/pok/kanto/mew.png"           # 150 mew
+                ]
+for img in pokemon_list_kanto:
+	pokemon_images_kanto.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_johto = []
+pokemon_list_johto = [
+   "img/pok/johto/chikorita.png","img/pok/johto/bayleef.png","img/pok/johto/meganium.png",
+   "img/pok/johto/cyndaquil.png","img/pok/johto/quilava.png","img/pok/johto/typhlosion.png",
+   "img/pok/johto/totodile.png","img/pok/johto/croconaw.png","img/pok/johto/feraligatr.png",
+   "img/pok/johto/sentret.png","img/pok/johto/furret.png","img/pok/johto/hoothoot.png", # 10 furret
+   "img/pok/johto/noctowl.png","img/pok/johto/ledyba.png","img/pok/johto/ledian.png",
+   "img/pok/johto/spinarak.png","img/pok/johto/ariados.png","img/pok/johto/crobat.png",
+   "img/pok/johto/chinchou.png","img/pok/johto/lanturn.png","img/pok/johto/pichu.png", # 20 pichu
+   "img/pok/johto/cleffa.png","img/pok/johto/igglybuff.png","img/pok/johto/togepi.png",
+   "img/pok/johto/togetic.png","img/pok/johto/natu.png","img/pok/johto/xatu.png",
+   "img/pok/johto/mareep.png","img/pok/johto/flaaffy.png","img/pok/johto/ampharos.png",
+   "img/pok/johto/bellossom.png","img/pok/johto/marill.png","img/pok/johto/azumarill.png", # 30 bellosom
+   "img/pok/johto/sudowoodo.png","img/pok/johto/politoed.png","img/pok/johto/hoppip.png",
+   "img/pok/johto/skiploom.png","img/pok/johto/jumpluff.png","img/pok/johto/aipom.png",
+   "img/pok/johto/sunkern.png","img/pok/johto/sunflora.png","img/pok/johto/yanma.png", # 40 sunflora
+   "img/pok/johto/wooper.png","img/pok/johto/quagsire.png","img/pok/johto/espeon.png",
+   "img/pok/johto/umbreon.png","img/pok/johto/murkrow.png","img/pok/johto/slowking.png",
+   "img/pok/johto/misdreavus.png","img/pok/johto/unown.png","img/pok/johto/wobbuffet.png", # 50 wobbuffet
+   "img/pok/johto/girafarig.png","img/pok/johto/pineco.png","img/pok/johto/forretress.png",
+   "img/pok/johto/dunsparce.png","img/pok/johto/gligar.png","img/pok/johto/steelix.png",
+   "img/pok/johto/snubbull.png","img/pok/johto/granbull.png","img/pok/johto/qwilfish.png",
+   "img/pok/johto/scizor.png","img/pok/johto/shukle.png","img/pok/johto/heracross.png", #60 scizor
+   "img/pok/johto/sneasel.png","img/pok/johto/teddiursa.png","img/pok/johto/ursaring.png",
+   "img/pok/johto/slugma.png","img/pok/johto/magcargo.png","img/pok/johto/swinub.png",
+   "img/pok/johto/piloswine.png","img/pok/johto/corsola.png","img/pok/johto/remoraid.png", # 70 corsola
+   "img/pok/johto/octillery.png","img/pok/johto/delibird.png","img/pok/johto/mantine.png",
+   "img/pok/johto/skarmory.png","img/pok/johto/houndour.png","img/pok/johto/houndoom.png",
+   "img/pok/johto/kingdra.png","img/pok/johto/phanpy.png","img/pok/johto/donphan.png", # 80 donphan
+   "img/pok/johto/porygon2.png","img/pok/johto/stantler.png","img/pok/johto/smeargle.png",
+   "img/pok/johto/tyrogue.png","img/pok/johto/hitmontop.png","img/pok/johto/smoochum.png",
+   "img/pok/johto/elekid.png","img/pok/johto/magby.png","img/pok/johto/miltank.png",
+   "img/pok/johto/blissey.png","img/pok/johto/raikou.png","img/pok/johto/entei.png", # 90 blissey
+   "img/pok/johto/suicune.png","img/pok/johto/larvitar.png","img/pok/johto/pupitar.png",
+   "img/pok/johto/tyranitar.png","img/pok/johto/lugia.png","img/pok/johto/ho-oh.png",
+   "img/pok/johto/celebi.png",
+         ]
+for img in pokemon_list_johto:
+	pokemon_images_johto.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_hoenn = []
+pokemon_list_hoenn = [
+   "img/pok/hoenn/treecko.png","img/pok/hoenn/grovyle.png","img/pok/hoenn/sceptile.png",
+   "img/pok/hoenn/torchic.png","img/pok/hoenn/combusken.png","img/pok/hoenn/blaziken.png",
+   "img/pok/hoenn/mudkip.png","img/pok/hoenn/marshtomp.png","img/pok/hoenn/swampert.png",
+   "img/pok/hoenn/poochyena.png","img/pok/hoenn/mightyena.png","img/pok/hoenn/zigzagoon.png",# 10 mightyena
+   "img/pok/hoenn/linoone.png","img/pok/hoenn/wurmple.png","img/pok/hoenn/silcoon.png",
+   "img/pok/hoenn/beautifly.png","img/pok/hoenn/cascoon.png","img/pok/hoenn/dustox.png",
+   "img/pok/hoenn/lotad.png","img/pok/hoenn/lombre.png","img/pok/hoenn/ludicolo.png",     # 20 ludicolo
+   "img/pok/hoenn/seedot.png","img/pok/hoenn/nuzleaf.png","img/pok/hoenn/shiftry.png",
+   "img/pok/hoenn/taillow.png","img/pok/hoenn/swellow.png","img/pok/hoenn/wingull.png",
+   "img/pok/hoenn/pelipper.png","img/pok/hoenn/ralts.png","img/pok/hoenn/kirlia.png",
+   "img/pok/hoenn/gardevoir.png","img/pok/hoenn/surskit.png","img/pok/hoenn/masquerain.png",#  30 gardevoir
+   "img/pok/hoenn/shroomish.png","img/pok/hoenn/breloom.png","img/pok/hoenn/slakoth.png",
+   "img/pok/hoenn/vigoroth.png","img/pok/hoenn/slaking.png","img/pok/hoenn/nincada.png",
+   "img/pok/hoenn/ninjask.png","img/pok/hoenn/shedinja.png","img/pok/hoenn/whismur.png",# 40 shedinja
+   "img/pok/hoenn/loudred.png","img/pok/hoenn/exploud.png","img/pok/hoenn/makuhita.png",
+   "img/pok/hoenn/hariyama.png","img/pok/hoenn/azurill.png","img/pok/hoenn/nosepass.png",
+   "img/pok/hoenn/skitty.png","img/pok/hoenn/delcatty.png","img/pok/hoenn/sableye.png",# 50 sableye
+   "img/pok/hoenn/mawile.png","img/pok/hoenn/aron.png","img/pok/hoenn/lairon.png",
+   "img/pok/hoenn/aggron.png","img/pok/hoenn/meditite.png","img/pok/hoenn/medicham.png",
+   "img/pok/hoenn/electrike.png","img/pok/hoenn/manectric.png","img/pok/hoenn/plusle.png",
+   "img/pok/hoenn/minum.png","img/pok/hoenn/volbeat.png","img/pok/hoenn/illumise.png",# 60 minum
+   "img/pok/hoenn/roselia.png","img/pok/hoenn/gulpin.png","img/pok/hoenn/swalot.png",
+   "img/pok/hoenn/carvanha.png","img/pok/hoenn/sharpedo.png","img/pok/hoenn/wailmer.png",
+   "img/pok/hoenn/wailord.png","img/pok/hoenn/numel.png","img/pok/hoenn/camerupt.png",# 70 numel
+   "img/pok/hoenn/torkoal.png","img/pok/hoenn/spoink.png","img/pok/hoenn/grumpig.png",
+   "img/pok/hoenn/spinda.png","img/pok/hoenn/trapinch.png","img/pok/hoenn/vibrava.png",
+   "img/pok/hoenn/flygon.png","img/pok/hoenn/cacnea.png","img/pok/hoenn/cacturne.png",# 80 cacturne
+   "img/pok/hoenn/swablu.png","img/pok/hoenn/altaria.png","img/pok/hoenn/zangoose.png",
+   "img/pok/hoenn/seviper.png","img/pok/hoenn/lunatone.png","img/pok/hoenn/solrock.png",
+   "img/pok/hoenn/barboach.png","img/pok/hoenn/whiscash.png","img/pok/hoenn/corpish.png",
+   "img/pok/hoenn/crawdaunt.png","img/pok/hoenn/baltoy.png","img/pok/hoenn/claydol.png",# 90 crawdaunt
+   "img/pok/hoenn/lileep.png","img/pok/hoenn/cradily.png","img/pok/hoenn/anorith.png",
+   "img/pok/hoenn/armaldo.png","img/pok/hoenn/feebas.png","img/pok/hoenn/milotic.png",
+   "img/pok/hoenn/castform.png","img/pok/hoenn/kecleon.png","img/pok/hoenn/shuppet.png",# 100 kecleon
+   "img/pok/hoenn/banette.png","img/pok/hoenn/duskull.png","img/pok/hoenn/dusclops.png",
+   "img/pok/hoenn/tropius.png","img/pok/hoenn/chimecho.png","img/pok/hoenn/absol.png",
+   "img/pok/hoenn/wynaut.png","img/pok/hoenn/snorunt.png","img/pok/hoenn/glalie.png",# 110 glalie
+   "img/pok/hoenn/spheal.png","img/pok/hoenn/sealeo.png","img/pok/hoenn/walrein.png",
+   "img/pok/hoenn/clamperl.png","img/pok/hoenn/huntail.png","img/pok/hoenn/gorebyss.png",
+   "img/pok/hoenn/relicanth.png","img/pok/hoenn/luvdisc.png","img/pok/hoenn/bagon.png",
+   "img/pok/hoenn/shelgon.png","img/pok/hoenn/salamence.png","img/pok/hoenn/beldum.png",# 120 shelgon
+   "img/pok/hoenn/metang.png","img/pok/hoenn/metagross.png","img/pok/hoenn/regirock.png",
+   "img/pok/hoenn/regice.png","img/pok/hoenn/registeel.png","img/pok/hoenn/latias.png",
+   "img/pok/hoenn/latios.png","img/pok/hoenn/kyogre.png","img/pok/hoenn/groudon.png",# 130 kyogre
+   "img/pok/hoenn/rayquaza.png","img/pok/hoenn/jirachi.png","img/pok/hoenn/deoxys.png"
+                ]
+for img in pokemon_list_hoenn:
+	pokemon_images_hoenn.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_sinnoh = []
+pokemon_list_sinnoh = [
+   "img/pok/sinnoh/turtwig.png","img/pok/sinnoh/grotle.png","img/pok/sinnoh/torterra.png",
+   "img/pok/sinnoh/chimchar.png","img/pok/sinnoh/monferno.png","img/pok/sinnoh/infernape.png",
+   "img/pok/sinnoh/piplup.png","img/pok/sinnoh/prinplup.png","img/pok/sinnoh/empoleon.png",
+   "img/pok/sinnoh/starly.png","img/pok/sinnoh/staravia.png","img/pok/sinnoh/staraptor.png",# 10 staravia
+   "img/pok/sinnoh/bidoof.png","img/pok/sinnoh/bibarel.png","img/pok/sinnoh/kricketot.png",
+   "img/pok/sinnoh/kricketune.png","img/pok/sinnoh/shinx.png","img/pok/sinnoh/luxio.png",
+   "img/pok/sinnoh/luxray.png","img/pok/sinnoh/budew.png","img/pok/sinnoh/roserade.png",# 20 roserade
+   "img/pok/sinnoh/cranidos.png","img/pok/sinnoh/rampardos.png","img/pok/sinnoh/shieldon.png",
+   "img/pok/sinnoh/bastiodon.png","img/pok/sinnoh/burmy.png","img/pok/sinnoh/wormadam.png",
+   "img/pok/sinnoh/mothim.png","img/pok/sinnoh/combee.png","img/pok/sinnoh/vespiquen.png",
+   "img/pok/sinnoh/pachirisu.png","img/pok/sinnoh/buizel.png","img/pok/sinnoh/floatzel.png", # 30 parichisu
+   "img/pok/sinnoh/cherubi.png","img/pok/sinnoh/cherrim.png","img/pok/sinnoh/shellos.png",
+   "img/pok/sinnoh/gastrodon.png","img/pok/sinnoh/ambipom.png","img/pok/sinnoh/drifloon.png",
+   "img/pok/sinnoh/drifblim.png","img/pok/sinnoh/buneary.png","img/pok/sinnoh/lopunny.png",# 40 buneary
+   "img/pok/sinnoh/mismagius.png","img/pok/sinnoh/honchkrow.png","img/pok/sinnoh/glameow.png",
+   "img/pok/sinnoh/purugly.png","img/pok/sinnoh/chingling.png","img/pok/sinnoh/stunky.png",
+   "img/pok/sinnoh/skuntank.png","img/pok/sinnoh/bronzor.png","img/pok/sinnoh/bronzong.png", # 50 bronzong
+   "img/pok/sinnoh/bonsly.png","img/pok/sinnoh/mimejr.png","img/pok/sinnoh/happiny.png",
+   "img/pok/sinnoh/chatot.png","img/pok/sinnoh/spiritomb.png","img/pok/sinnoh/gible.png",
+   "img/pok/sinnoh/gabite.png","img/pok/sinnoh/garchomp.png","img/pok/sinnoh/munchlax.png",
+   "img/pok/sinnoh/riolu.png","img/pok/sinnoh/lucario.png","img/pok/sinnoh/hippopotas.png",# 60 riolu
+   "img/pok/sinnoh/hippowdon.png","img/pok/sinnoh/skorupi.png","img/pok/sinnoh/drapion.png",
+   "img/pok/sinnoh/croagunk.png","img/pok/sinnoh/toxicroak.png","img/pok/sinnoh/carnivine.png",
+   "img/pok/sinnoh/finneon.png","img/pok/sinnoh/lumineon.png","img/pok/sinnoh/mantyke.png",# 70 lumineon
+   "img/pok/sinnoh/snover.png","img/pok/sinnoh/abomasnow.png","img/pok/sinnoh/weavile.png",
+   "img/pok/sinnoh/magnezone.png","img/pok/sinnoh/lickilicky.png","img/pok/sinnoh/rhyperior.png",
+   "img/pok/sinnoh/tangrowth.png","img/pok/sinnoh/electivire.png","img/pok/sinnoh/magmortar.png",# 80 magmortar
+   "img/pok/sinnoh/togekiss.png","img/pok/sinnoh/yanmega.png","img/pok/sinnoh/leafeon.png",
+   "img/pok/sinnoh/glaceon.png","img/pok/sinnoh/gliscor.png","img/pok/sinnoh/mamoswine.png",
+   "img/pok/sinnoh/porygon-z.png","img/pok/sinnoh/gallade.png","img/pok/sinnoh/probopass.png",
+   "img/pok/sinnoh/dusknoir.png","img/pok/sinnoh/froslass.png","img/pok/sinnoh/rotom.png",
+   "img/pok/sinnoh/uxie.png","img/pok/sinnoh/mesprit.png","img/pok/sinnoh/azelf.png",
+   "img/pok/sinnoh/dialga.png","img/pok/sinnoh/palkia.png",
+   "img/pok/sinnoh/heatran.png","img/pok/sinnoh/regigigas.png","img/pok/sinnoh/giratina.png",
+   "img/pok/sinnoh/cresselia.png","img/pok/sinnoh/phione.png","img/pok/sinnoh/manaphy.png",
+   "img/pok/sinnoh/darkrai.png","img/pok/sinnoh/shaymin.png","img/pok/sinnoh/arceus.png"
+   ]
+for img in pokemon_list_sinnoh:
+	pokemon_images_sinnoh.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_teselia = []
+pokemon_list_teselia = [
+   "img/pok/teselia/victini.png","img/pok/teselia/snivy.png","img/pok/teselia/servine.png",
+   "img/pok/teselia/serperior.png","img/pok/teselia/tepig.png","img/pok/teselia/pignite.png",
+   "img/pok/teselia/emboar.png","img/pok/teselia/oshawott.png","img/pok/teselia/dewott.png",
+   "img/pok/teselia/samurott.png","img/pok/teselia/patrat.png","img/pok/teselia/watchog.png",#10patrat
+   "img/pok/teselia/lillipup.png","img/pok/teselia/herdier.png","img/pok/teselia/stoutland.png",
+   "img/pok/teselia/purrloin.png","img/pok/teselia/liepard.png","img/pok/teselia/pansage.png",
+   "img/pok/teselia/simisage.png","img/pok/teselia/pansear.png","img/pok/teselia/simisear.png",#20simisear
+   "img/pok/teselia/panpour.png","img/pok/teselia/simipour.png","img/pok/teselia/munna.png",
+   "img/pok/teselia/musharna.png","img/pok/teselia/pidove.png","img/pok/teselia/tranquill.png",
+   "img/pok/teselia/unfezant.png","img/pok/teselia/blitzle.png","img/pok/teselia/zebstrika.png",
+   "img/pok/teselia/roggenrola.png","img/pok/teselia/boldore.png","img/pok/teselia/gigalith.png",#30 roggenrola
+   "img/pok/teselia/woobat.png","img/pok/teselia/swoobat.png","img/pok/teselia/drilbur.png",
+   "img/pok/teselia/excadrill.png","img/pok/teselia/audino.png","img/pok/teselia/timburr.png",
+   "img/pok/teselia/gurdurr.png","img/pok/teselia/conkeldurr.png","img/pok/teselia/tympole.png",#40 conkeldurr
+   "img/pok/teselia/palpitoad.png","img/pok/teselia/seismitoad.png","img/pok/teselia/throh.png",
+   "img/pok/teselia/sawk.png","img/pok/teselia/sewaddle.png","img/pok/teselia/swadloon.png",
+   "img/pok/teselia/leavanny.png","img/pok/teselia/venipede.png","img/pok/teselia/whirlipede.png",#50 whirlipede
+   "img/pok/teselia/scolipede.png","img/pok/teselia/cottonee.png","img/pok/teselia/whimsicott.png",
+   "img/pok/teselia/petilil.png","img/pok/teselia/lilligant.png","img/pok/teselia/basculin.png",
+   "img/pok/teselia/sandile.png","img/pok/teselia/krokorok.png","img/pok/teselia/krookodile.png",#60 darumka
+   "img/pok/teselia/darumaka.png","img/pok/teselia/darmanitan.png","img/pok/teselia/maractus.png",
+   "img/pok/teselia/dwebble.png","img/pok/teselia/crustle.png","img/pok/teselia/scraggy.png",
+   "img/pok/teselia/scrafty.png","img/pok/teselia/sigilyph.png","img/pok/teselia/yamask.png",
+   "img/pok/teselia/cofagrigus.png","img/pok/teselia/tirtouga.png","img/pok/teselia/carracosta.png",#70 tirtoga
+   "img/pok/teselia/archen.png","img/pok/teselia/archeops.png","img/pok/teselia/trubbish.png",
+   "img/pok/teselia/garbodor.png","img/pok/teselia/zorua.png","img/pok/teselia/zoroark.png",
+   "img/pok/teselia/minccino.png","img/pok/teselia/cinccino.png","img/pok/teselia/gothita.png",#80 gothita
+   "img/pok/teselia/gothorita.png","img/pok/teselia/gothitelle.png","img/pok/teselia/solosis.png",
+   "img/pok/teselia/duosion.png","img/pok/teselia/reuniclus.png","img/pok/teselia/ducklett.png",
+   "img/pok/teselia/swanna.png","img/pok/teselia/vanillite.png","img/pok/teselia/vanillish.png",#90 vanilluxe
+   "img/pok/teselia/vanilluxe.png","img/pok/teselia/deerling.png","img/pok/teselia/sawsbuck.png",
+   "img/pok/teselia/emolga.png","img/pok/teselia/karrablast.png","img/pok/teselia/escavalier.png",
+   "img/pok/teselia/foongus.png","img/pok/teselia/amoonguss.png","img/pok/teselia/frillish.png",
+   "img/pok/teselia/jellicent.png","img/pok/teselia/alomomola.png","img/pok/teselia/joltik.png",#100 alomomola
+   "img/pok/teselia/galvantula.png","img/pok/teselia/ferroseed.png","img/pok/teselia/ferrothorn.png",
+   "img/pok/teselia/klink.png","img/pok/teselia/klang.png","img/pok/teselia/klinklang.png",
+   "img/pok/teselia/tynamo.png","img/pok/teselia/eelektrik.png","img/pok/teselia/eelektross.png",#110 eelektross
+   "img/pok/teselia/elgyem.png","img/pok/teselia/beheeyem.png","img/pok/teselia/litwick.png",
+   "img/pok/teselia/lampent.png","img/pok/teselia/chandelure.png","img/pok/teselia/axew.png",
+   "img/pok/teselia/fraxure.png","img/pok/teselia/haxorus.png","img/pok/teselia/cubchoo.png",
+   "img/pok/teselia/beartic.png","img/pok/teselia/cryogonal.png","img/pok/teselia/shelmet.png",#120 beartic
+   "img/pok/teselia/accelgor.png","img/pok/teselia/stunfisk.png","img/pok/teselia/mienfoo.png",
+   "img/pok/teselia/mienshao.png","img/pok/teselia/druddigon.png","img/pok/teselia/golett.png",
+   "img/pok/teselia/golurk.png","img/pok/teselia/pawniard.png","img/pok/teselia/bisharp.png",
+   "img/pok/teselia/bouffalant.png","img/pok/teselia/rufflet.png","img/pok/teselia/braviary.png",
+   "img/pok/teselia/vullaby.png","img/pok/teselia/mandibuzz.png","img/pok/teselia/heatmor.png",
+   "img/pok/teselia/durant.png","img/pok/teselia/deino.png","img/pok/teselia/zweilous.png",
+   "img/pok/teselia/hydreigon.png","img/pok/teselia/larvesta.png","img/pok/teselia/volcarona.png",
+   "img/pok/teselia/cobalion.png","img/pok/teselia/terrakion.png","img/pok/teselia/virizion.png",
+   "img/pok/teselia/tornadus.png","img/pok/teselia/thundurus.png","img/pok/teselia/reshiram.png",
+   "img/pok/teselia/zekrom.png","img/pok/teselia/landorus.png","img/pok/teselia/kyurem.png",
+   "img/pok/teselia/keldeo.png","img/pok/teselia/meloetta.png","img/pok/teselia/genesect.png"
+]
+for img in pokemon_list_teselia:
+	pokemon_images_teselia.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_kalos = []
+pokemon_list_kalos = [
+   "img/pok/kalos/chespin.png","img/pok/kalos/quilladin.png","img/pok/kalos/chesnaught.png",
+   "img/pok/kalos/fennekin.png","img/pok/kalos/braixen.png","img/pok/kalos/delphox.png",
+   "img/pok/kalos/froakie.png","img/pok/kalos/frogadier.png","img/pok/kalos/greninja.png",
+   "img/pok/kalos/bunnelby.png","img/pok/kalos/diggersby.png","img/pok/kalos/fletchling.png",
+   "img/pok/kalos/fletchinder.png","img/pok/kalos/talonflame.png","img/pok/kalos/scatterbug.png",
+   "img/pok/kalos/spewpa.png","img/pok/kalos/vivillon.png","img/pok/kalos/litleo.png",
+   "img/pok/kalos/pyroar.png","img/pok/kalos/flabebe.png","img/pok/kalos/floette.png",
+   "img/pok/kalos/florges.png","img/pok/kalos/skiddo.png","img/pok/kalos/gogoat.png",
+   "img/pok/kalos/pancham.png","img/pok/kalos/pangoro.png","img/pok/kalos/furfrou.png",
+   "img/pok/kalos/espurr.png","img/pok/kalos/meowstic.png","img/pok/kalos/honedge.png",
+   "img/pok/kalos/doublade.png","img/pok/kalos/aegislash.png","img/pok/kalos/spritzee.png",
+   "img/pok/kalos/aromatisse.png","img/pok/kalos/swirlix.png","img/pok/kalos/slurpuff.png",
+   "img/pok/kalos/inkay.png","img/pok/kalos/malamar.png","img/pok/kalos/binacle.png",
+   "img/pok/kalos/barbaracle.png","img/pok/kalos/skrelp.png","img/pok/kalos/dragalge.png",
+   "img/pok/kalos/clauncher.png","img/pok/kalos/clawitzer.png","img/pok/kalos/helioptile.png",
+   "img/pok/kalos/heliolisk.png","img/pok/kalos/tyrunt.png","img/pok/kalos/tyrantrum.png",
+   "img/pok/kalos/amaura.png","img/pok/kalos/aurorus.png","img/pok/kalos/sylveon.png",
+   "img/pok/kalos/hawlucha.png","img/pok/kalos/dedenne.png","img/pok/kalos/carbink.png",
+   "img/pok/kalos/goomy.png","img/pok/kalos/sliggoo.png","img/pok/kalos/goodra.png",
+   "img/pok/kalos/klefki.png","img/pok/kalos/phantump.png","img/pok/kalos/trevenant.png",
+   "img/pok/kalos/pumpkaboo.png","img/pok/kalos/gourgeist.png","img/pok/kalos/bergmite.png",
+   "img/pok/kalos/avalugg.png","img/pok/kalos/noibat.png","img/pok/kalos/noivern.png",
+   "img/pok/kalos/xerneas.png","img/pok/kalos/yveltal.png","img/pok/kalos/zygarde.png",
+   "img/pok/kalos/diancie.png","img/pok/kalos/hoopa.png","img/pok/kalos/volcanion.png",
+]
+for img in pokemon_list_kalos:
+	pokemon_images_kalos.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_alola = []
+pokemon_list_alola = [
+   "img/pok/alola/rattata.png","img/pok/alola/raticate.png","img/pok/alola/raichu.png",
+   "img/pok/alola/sandshrew.png","img/pok/alola/sandslash.png","img/pok/alola/vulpix.png",
+   "img/pok/alola/ninetales.png","img/pok/alola/diglett.png","img/pok/alola/dugtrio.png",
+   "img/pok/alola/meowth.png","img/pok/alola/persian.png","img/pok/alola/geodude.png",
+   "img/pok/alola/graveler.png","img/pok/alola/golem.png","img/pok/alola/grimer.png",
+   "img/pok/alola/muk.png","img/pok/alola/exeggutor.png","img/pok/alola/marowak.png",
+   "img/pok/alola/rowlet.png","img/pok/alola/dartrix.png","img/pok/alola/decidueye.png",
+   "img/pok/alola/litten.png","img/pok/alola/torracat.png","img/pok/alola/incineroar.png",
+   "img/pok/alola/popplio.png","img/pok/alola/brionne.png","img/pok/alola/primarina.png",
+   "img/pok/alola/pikipek.png","img/pok/alola/trumbeak.png","img/pok/alola/toucannon.png",
+   "img/pok/alola/yungoos.png","img/pok/alola/gumshoos.png","img/pok/alola/grubbin.png",
+   "img/pok/alola/charjabug.png","img/pok/alola/vikavolt.png","img/pok/alola/crabrawler.png",
+   "img/pok/alola/crabominable.png","img/pok/alola/oricorio.png","img/pok/alola/cutiefly.png",
+   "img/pok/alola/ribombee.png","img/pok/alola/rockruff.png","img/pok/alola/lycanroc.png",
+   "img/pok/alola/wishiwashi.png","img/pok/alola/mareanie.png","img/pok/alola/toxapex.png",
+   "img/pok/alola/mudbray.png","img/pok/alola/mudsdale.png","img/pok/alola/dewpider.png",
+   "img/pok/alola/araquanid.png","img/pok/alola/fomantis.png","img/pok/alola/lurantis.png",
+   "img/pok/alola/morelull.png","img/pok/alola/shiinotic.png","img/pok/alola/salandit.png",
+   "img/pok/alola/salazzle.png","img/pok/alola/stufful.png","img/pok/alola/bewear.png",
+   "img/pok/alola/bounsweet.png","img/pok/alola/steenee.png","img/pok/alola/tsareena.png",
+   "img/pok/alola/comfey.png","img/pok/alola/oranguru.png","img/pok/alola/passimian.png",
+   "img/pok/alola/wimpod.png","img/pok/alola/golisopod.png","img/pok/alola/sandygast.png",
+   "img/pok/alola/palossand.png","img/pok/alola/pyukumuku.png","img/pok/alola/typeNull.png",
+   "img/pok/alola/silvally.png","img/pok/alola/minior.png","img/pok/alola/komala.png",
+   "img/pok/alola/turtonator.png","img/pok/alola/togedemaru.png","img/pok/alola/mimikyu.png",
+   "img/pok/alola/bruxish.png","img/pok/alola/drampa.png","img/pok/alola/dhelmise.png",
+   "img/pok/alola/jangmo-o.png","img/pok/alola/hakamo-o.png","img/pok/alola/kommo-o.png",
+   "img/pok/alola/tapukoko.png","img/pok/alola/tapulele.png","img/pok/alola/tapubulu.png",
+   "img/pok/alola/tapufini.png","img/pok/alola/cosmog.png","img/pok/alola/cosmoem.png",
+   "img/pok/alola/solgaleo.png","img/pok/alola/lunala.png","img/pok/alola/nihilego.png",
+   "img/pok/alola/buzzwole.png","img/pok/alola/pheromosa.png","img/pok/alola/xurkitree.png",
+   "img/pok/alola/celesteela.png","img/pok/alola/kartana.png","img/pok/alola/guzzlord.png",
+   "img/pok/alola/necrozma.png","img/pok/alola/magearna.png","img/pok/alola/marshadow.png",
+   "img/pok/alola/poipole.png","img/pok/alola/naganadel.png","img/pok/alola/stakataka.png",
+   "img/pok/alola/blacephalon.png","img/pok/alola/zeraora.png"
+]
+for img in pokemon_list_alola:
+	pokemon_images_alola.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_unknown = []
+pokemon_images_unknown.append(pygame.transform.scale(pygame.image.load("img/pok/unknown/meltan.png"),(200,200)).convert())
+pokemon_images_unknown.append(pygame.transform.scale(pygame.image.load("img/pok/unknown/melmetal.png"),(200,200)).convert())
+
+pokemon_images_galar = []
+pokemon_list_galar = [
+   "img/pok/galar/meowth.png","img/pok/galar/ponyta.png","img/pok/galar/rapidash.png",
+   "img/pok/galar/slowpoke.png","img/pok/galar/slowbro.png","img/pok/galar/farfetchd.png",
+   "img/pok/galar/weezing.png","img/pok/galar/mrmime.png","img/pok/galar/articuno.png",
+   "img/pok/galar/zapdos.png","img/pok/galar/moltres.png","img/pok/galar/slowking.png",
+   "img/pok/galar/corsola.png","img/pok/galar/zigzagoon.png","img/pok/galar/linoone.png",
+   "img/pok/galar/darumaka.png","img/pok/galar/darmanitan.png","img/pok/galar/yamask.png",
+   "img/pok/galar/stunfisk.png",
+   "img/pok/galar/grookey.png","img/pok/galar/thwackey.png","img/pok/galar/rillaboom.png",
+   "img/pok/galar/scorbunny.png","img/pok/galar/raboot.png","img/pok/galar/cinderace.png",
+   "img/pok/galar/sobble.png","img/pok/galar/drizzile.png","img/pok/galar/inteleon.png",
+   "img/pok/galar/skwovet.png","img/pok/galar/greedent.png","img/pok/galar/rookidee.png",
+   "img/pok/galar/corvisquire.png","img/pok/galar/corviknight.png","img/pok/galar/blipbug.png",
+   "img/pok/galar/dottler.png","img/pok/galar/orbeetle.png","img/pok/galar/nickit.png",
+   "img/pok/galar/thievul.png","img/pok/galar/gossifleur.png","img/pok/galar/eldegoss.png",
+   "img/pok/galar/wooloo.png","img/pok/galar/dubwool.png","img/pok/galar/chewtle.png",
+   "img/pok/galar/drednaw.png","img/pok/galar/yamper.png","img/pok/galar/boltund.png",
+   "img/pok/galar/rolycoly.png","img/pok/galar/carkol.png","img/pok/galar/coalossal.png",
+   "img/pok/galar/applin.png","img/pok/galar/flapple.png","img/pok/galar/appletun.png",
+   "img/pok/galar/silicobra.png","img/pok/galar/sandaconda.png","img/pok/galar/cramorant.png",
+   "img/pok/galar/arrokuda.png","img/pok/galar/barraskewda.png","img/pok/galar/toxel.png",
+   "img/pok/galar/toxtricity.png","img/pok/galar/sizzlipede.png","img/pok/galar/centiskorch.png",
+   "img/pok/galar/clobbopus.png","img/pok/galar/grapploct.png","img/pok/galar/sinistea.png",
+   "img/pok/galar/polteageist.png","img/pok/galar/hatenna.png","img/pok/galar/hattrem.png",
+   "img/pok/galar/hatterene.png","img/pok/galar/impidimp.png","img/pok/galar/morgrem.png",
+   "img/pok/galar/grimmsnarl.png","img/pok/galar/obstagoon.png","img/pok/galar/perrserker.png",
+   "img/pok/galar/cursola.png","img/pok/galar/sirfetchd.png","img/pok/galar/mrrime.png",
+   "img/pok/galar/runerigus.png","img/pok/galar/milcery.png","img/pok/galar/alcremie.png",
+   "img/pok/galar/falinks.png","img/pok/galar/pincurchin.png","img/pok/galar/snom.png",
+   "img/pok/galar/frosmoth.png","img/pok/galar/stonjourner.png","img/pok/galar/eiscue.png",
+   "img/pok/galar/indeedee.png","img/pok/galar/morpeko.png","img/pok/galar/cufant.png",
+   "img/pok/galar/copperajah.png","img/pok/galar/dracozolt.png","img/pok/galar/arctozolt.png",
+   "img/pok/galar/dracovish.png","img/pok/galar/arctovish.png","img/pok/galar/duraludon.png",
+   "img/pok/galar/dreepy.png","img/pok/galar/drakloak.png","img/pok/galar/dragapult.png",
+   "img/pok/galar/zacian.png","img/pok/galar/zamazenta.png","img/pok/galar/eternatus.png",
+   "img/pok/galar/kubfu.png","img/pok/galar/urshifu.png","img/pok/galar/zarude.png",
+   "img/pok/galar/regieleki.png","img/pok/galar/regidrago.png","img/pok/galar/glastrier.png",
+   "img/pok/galar/spectrier.png","img/pok/galar/calyrex.png",
+ #  "img/pok/galar/.png"
+]
+for img in pokemon_list_galar:
+	pokemon_images_galar.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_hisui = []
+pokemon_list_hisui = [
+ #  "img/pok/hisui/.png"
+]
+for img in pokemon_list_hisui:
+	pokemon_images_hisui.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+pokemon_images_paldea = []
+pokemon_list_paldea = [
+  # "img/pok/paldea/.png"
+]
+for img in pokemon_list_paldea:
+	pokemon_images_paldea.append(pygame.transform.scale(pygame.image.load(img),(200,200)).convert())
+
+
+
+#0..normal    1..lucha    2..volador   3..veneno   4..tierra   5..roca   6..bicho      78cacn
+#7..fantasma   8..fuego   9..agua   10..planta   11..electrico   12..psiquico
+#13..siniestro   14..hada   15..acero   16..hielo   17..dragon           ( )
+
+
+pokemon_sta = []
+
+type_images = []
+
+type_list = ["img/type/normal.png","img/type/lucha.png","img/type/volador.png","img/type/veneno.png",
+             "img/type/tierra.png","img/type/roca.png","img/type/bicho.png","img/type/fantasma.png",
+             "img/type/fuego.png","img/type/agua.png","img/type/planta.png","img/type/electrico.png",
+             "img/type/psiquico.png","img/type/siniestro.png","img/type/hada.png","img/type/acero.png",
+             "img/type/hielo.png","img/type/dragon.png","img/type/none.png"]
+for img in type_list:
+   type_images.append(pygame.transform.scale(pygame.image.load(img),(50,50)).convert())
+
+shield_img = pygame.transform.scale(pygame.image.load("img/shield.png"),(200,200))
+shield_img.set_colorkey(WHITE)
+
+def show_game_over_screenp1():
+   screen.fill(BLACK)
+   draw_text1(screen, "YOU WIN", 20, WIDTH // 2, HEIGHT // 2)
+   draw_text1(screen, "Press Q", 20, WIDTH // 2, HEIGHT * 3/4)
+
+   pygame.display.flip()
+   waiting = True
+   while waiting:
+      clock.tick(60)
+      for event in pygame.event.get():
+         if event.type == pygame.QUIT:
+            pygame.quit()
+         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+               waiting = False
+
+def show_game_over_screenp2():
+   screen.fill(BLACK)
+   draw_text1(screen, "CPU WINS", 20, WIDTH // 2, HEIGHT // 2)
+   draw_text1(screen, "Press Q", 20, WIDTH // 2, HEIGHT * 3/4)
+
+   pygame.display.flip()
+   waiting = True
+   while waiting:
+      clock.tick(60)
+      for event in pygame.event.get():
+         if event.type == pygame.QUIT:
+            pygame.quit()
+         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+               waiting = False
+
+
+def show_game_over_screenp3():
+   screen.fill(BLACK)
+   draw_text1(screen, "DRAW", 30, WIDTH // 2, HEIGHT // 2)
+   draw_text1(screen, "Press Q", 20, WIDTH // 2, HEIGHT * 3/4)
+
+   pygame.display.flip()
+   waiting = True
+   while waiting:
+      clock.tick(60)
+      for event in pygame.event.get():
+         if event.type == pygame.QUIT:
+            pygame.quit()
+         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+               waiting = False
+
+
+def damage(atacante,defensor):
+#   poder_de_ataque = atacante.poder_de_ataque
+   tipo_atacante = moves_db[atacante.moves[0]].m_type
+   tipo_defensor1 = defensor.type1
+   tipo_defensor2 = defensor.type2
+
+
+   efectividad_total = 1
+   if tipo_defensor2 is not 18:
+      efectividad_total *= matriz_efectividad[tipo_atacante][tipo_defensor1]
+      efectividad_total *= matriz_efectividad[tipo_atacante][tipo_defensor2]
+   else:
+      efectividad_total *= matriz_efectividad[tipo_atacante][tipo_defensor1]
+
+   daño = (0.5*moves_db[atacante.moves[0]].power*(atacante.attack/(defensor.defense))*efectividad_total) + 1 #6 es un valor de ataque, medio.
+   return daño
+
+simbolos_totales = [45,23,23,30,40,32,28,25,28,28,23,28,50,32,50,24,32,35]
+ataque_recargado_time = [10,9,7,8,6,8,7,9,9,8,7,7.5,10,8,10,8,8,8.5]
+
+def damageR(atacante,defensor,clicks):
+#   poder_de_ataque = atacante.poder_de_ataque
+   tipo_atacante = moves_dbR[atacante.moves[1]].m_type
+   tipo_defensor1 = defensor.type1
+   tipo_defensor2 = defensor.type2
+
+
+   efectividad_total = 1
+   if tipo_defensor2 is not 18:
+      efectividad_total *= matriz_efectividad[tipo_atacante][tipo_defensor1]
+      efectividad_total *= matriz_efectividad[tipo_atacante][tipo_defensor2]
+   else:
+      efectividad_total *= matriz_efectividad[tipo_atacante][tipo_defensor1]
+
+   daño = int((0.5*moves_dbR[atacante.moves[1]].power*(atacante.attack/(defensor.defense))*efectividad_total) + 1) #6 es un valor de ataque, medio.
+   daño = daño*(0.5 + 0.5 * (clicks/simbolos_totales[moves_dbR[atacante.moves[1]].m_type]))
+   return daño
+
+
+
+tiempo_ataque_recargado = 0
+clicks = 0
+pixeles_mostrados = 0
+MAX_PIXELES = 60
+ataque_listo = False
+altura_imagen = 60
+player_pokemon_list = []
+op_pokemon_list = []
+enemy_shields = 2
+player_shields = 2
+player_pokemon_type_attack = 0
+op_pokemon_type_attack = 0
+
+fighting = True
+
+numero_aleatorio = 942
+
+carga1 = True
+game_over1 = False
+game_over2 = False
+game_over3 = False
+player_pokemon_hp = 0
+op_pokemon_hp = 0
+player_pokemon = 0
+op_pokemon = 0
+all_sprites = pygame.sprite.Group()
+ataque_recargado_sprites = pygame.sprite.Group()
+
+pokeballs = pygame.sprite.Group()
+type_pokemon = pygame.sprite.Group()
+type2_pokemon = pygame.sprite.Group()
+gestor_juego = GestorJuego()
+
+while fighting:
+   clock.tick(60)
+   for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+         pygame.quit()
+      for pok in all_sprites:
+         if pok.team_int == 0:
+            x_offset = (WIDTH - boton.image.get_width())//2
+            y_offset = HEIGHT- MAX_PIXELES
+            # 1. Si la barra ya está llena; solo se puede atacar con R o click en el botón
+            if pixeles_mostrados >= MAX_PIXELES:
+               if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                  gestor_juego.state = "ataque recargado"
+                  tiempo_ataque_recargado = pygame.time.get_ticks()
+                  pixeles_mostrados = 0
+               elif event.type == pygame.MOUSEBUTTONDOWN:
+                  mouse_x, mouse_y = event.pos
+                  # click dentro del botón
+                  if x_offset <= mouse_x <= x_offset + boton.image.get_width() and y_offset <= mouse_y <= y_offset + MAX_PIXELES:
+                     gestor_juego.state = "ataque recargado"
+                     tiempo_ataque_recargado = pygame.time.get_ticks()
+                     pixeles_mostrados = 0
+               #continue
+            elif gestor_juego.state == "normal":
+               cargar = False
+
+               if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
+                  cargar = True
+               elif event.type == pygame.MOUSEBUTTONDOWN:
+                  cargar = True
+               
+               if cargar:
+                  tiempo_actual = pygame.time.get_ticks()
+                  if tiempo_actual - pok.ultimo_ataque > pok.tiempo_entre_ataques:
+                     incremento = int(MAX_PIXELES * moves_db[player_pokemon.moves[0]].incremento_energia / moves_dbR[player_pokemon.moves[1]].energy_cost)
+                     pixeles_mostrados += incremento
+                     if pixeles_mostrados > MAX_PIXELES:
+                        pixeles_mostrados = MAX_PIXELES
+                     pok.ultimo_ataque = tiempo_actual
+                     for poke in all_sprites:
+                        if poke.team_int == 1:
+                           poke.hp -= damage(player_pokemon, poke)
+      
+   while gestor_juego.state == "ataque recargado":
+      now = pygame.time.get_ticks() - tiempo_ataque_recargado
+      for event in pygame.event.get():
+         if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+      mouse_pos = pygame.mouse.get_pos()
+      for sprite in ataque_recargado_sprites:
+         dx = mouse_pos[0] - sprite.rect.centerx
+         dy = mouse_pos[1] - sprite.rect.centery
+         distancia = math.sqrt(dx**2+dy**2)
+         if distancia <= sprite.rect.width/2:
+            sprite.kill()
+            clicks += 1
+      if now >= ataque_recargado_time[moves_dbR[player_pokemon.moves[1]].m_type]*1000 or clicks == simbolos_totales[moves_dbR[player_pokemon.moves[1]].m_type] :#11000:
+            gestor_juego.state = "normal"
+            boton.kill()
+            pixeles_mostrados = 0
+            if enemy_shields > 0:
+               enemy_shields -= 1
+            else:
+               op_pokemon.hp -= damageR(player_pokemon,op_pokemon,clicks)
+            clicks = 0
+            boton = Boton(moves_dbR[player_pokemon.moves[1]].m_type)
+      screen.fill((BLACK))
+      ataque_recargado_sprites.update()
+      boton.update()
+      ataque_recargado_sprites.draw(screen)
+      pygame.display.flip()
+      clock.tick(60)
+   if game_over1:
+      game_over1 = False
+      show_game_over_screenp1()
+      carga1 = True
+
+
+   if game_over2:
+      game_over2 = False
+      show_game_over_screenp2()
+      carga1 = True
+
+   if game_over3:
+      game_over3 = False
+      show_game_over_screenp3()
+      carga1 = True
+
+
+
+   if carga1:
+      carga1 = False
+      pixeles_mostrados = 0
+      gestor_juego.player_shields = 2
+      all_sprites.empty()
+      pokeballs.empty()
+      player_pokemon_list = []
+      op_pokemon_list = []
+      pokemon1 = Pokemon(randint(1,numero_aleatorio),0)
+      player_pokemon = pokemon1
+      player_pokemon_list.append(pokemon1)
+      all_sprites.add(pokemon1)
+      boton = Boton(moves_dbR[pokemon1.moves[1]].m_type)
+      print(pokemon1.moves[0])
+      print(pokemon1.moves[1])
+      player_pokemon_hp = pokemon1.hp
+      if pokemon1.type2 != 18:
+      
+         player_pokemon_type_attack = random.choice([pokemon1.type1,pokemon1.type2])
+      else:
+         player_pokemon_type_attack = pokemon1.type1
+      type1 = Type(player_pokemon_type_attack,270,460,0,50,50)
+      type_pokemon.add(type1)
+      type1a = Type(pokemon1.type1,pokemon1.rect.x,pokemon1.rect.top - 30,0,25,25)
+      type1b = Type(pokemon1.type2,pokemon1.rect.x + 30,pokemon1.rect.top - 30,0,25,25)
+      type2_pokemon.add(type1a,type1b)
+      pokemon2 = Pokemon(randint(1,numero_aleatorio),0)
+      player_pokemon_list.append(pokemon2)
+      pokemon3 = Pokemon(randint(1,numero_aleatorio),0)
+      player_pokemon_list.append(pokemon3)
+      pokemon4 = Pokemon(randint(1,numero_aleatorio),1)
+      op_pokemon = pokemon4
+      op_pokemon_list.append(pokemon4)
+      all_sprites.add(pokemon4)
+      print(pokemon4.moves[0])
+      print(pokemon4.moves[1])
+      op_pokemon_hp = pokemon4.hp
+      if pokemon4.type2 != 18:
+         op_pokemon_type_attack = random.choice([pokemon4.type1,pokemon4.type2])
+      else:
+         op_pokemon_type_attack = pokemon4.type1
+      type2 = Type(op_pokemon_type_attack,670,260,1,50,50)
+      type_pokemon.add(type2)
+      type2a = Type(pokemon4.type1,pokemon4.rect.x,pokemon4.rect.top - 30,1,25,25)
+      type2b = Type(pokemon4.type2,pokemon4.rect.x + 30,pokemon4.rect.top - 30,1,25,25)
+      type2_pokemon.add(type2a,type2b)
+      pokemon5 = Pokemon(randint(1,numero_aleatorio),1)
+      op_pokemon_list.append(pokemon5)
+      pokemon6 = Pokemon(randint(1,numero_aleatorio),1)
+      op_pokemon_list.append(pokemon6)
+      pokeball1 = Pokeball(0,3)
+      pokeball2 = Pokeball(1,3)
+      pokeballs.add(pokeball1,pokeball2)
+
+
+
+   if len(all_sprites) < 2 and not (game_over1 or game_over2 or game_over3):
+      # Determine which team needs a new pokemon
+      active_teams = [p.team_int for p in all_sprites]
+    
+      if 0 not in active_teams and len(player_pokemon_list) > 0:
+         new_pok = random.choice(player_pokemon_list)
+         player_pokemon = new_pok
+         all_sprites.add(new_pok)
+         boton.kill()
+         boton = Boton(moves_dbR[new_pok.moves[1]].m_type)
+         pixeles_mostrados = 0
+         print(new_pok.moves[0])
+         print(new_pok.moves[1])
+         player_pokemon_hp = new_pok.hp # Store max HP for the bar
+         # Update Attack Type and Icons... (Apply your icon logic here)
+         if new_pok.type2 != 18:
+            player_pokemon_type_attack = random.choice([new_pok.type1,new_pok.type2])
+         else:
+            player_pokemon_type_attack = new_pok.type1
+         for typ in type_pokemon:
+            if typ.team_int == 0:
+               typ.kill()
+         type1 = Type(player_pokemon_type_attack,270,460,0,50,50)
+         type_pokemon.add(type1)
+         for typ in type2_pokemon:
+            if typ.team_int == 0:
+               typ.kill()
+         type1a = Type(new_pok.type1,new_pok.rect.x,new_pok.rect.top - 30,0,25,25)
+         type1b = Type(new_pok.type2,new_pok.rect.x + 30,new_pok.rect.top - 30,0,25,25)
+         type2_pokemon.add(type1a,type1b)
+
+         
+      if 1 not in active_teams and len(op_pokemon_list) > 0:
+         new_pok = random.choice(op_pokemon_list)
+         op_pokemon = new_pok
+         all_sprites.add(new_pok)
+         print(new_pok.moves[0])
+         print(new_pok.moves[1])
+         op_pokemon_hp = new_pok.hp
+         # Update Attack Type and Icons...
+         if new_pok.type2 != 18:
+            op_pokemon_type_attack = random.choice([new_pok.type1,new_pok.type2])
+         else:
+            op_pokemon_type_attack = new_pok.type1
+         for ty in type_pokemon:
+            if ty.team_int == 1:
+               ty.kill()
+         type2 = Type(op_pokemon_type_attack,670,260,1,50,50)
+         type_pokemon.add(type2)
+         for ty in type2_pokemon:
+            if ty.team_int == 1:
+               ty.kill()
+         type2a = Type(new_pok.type1,new_pok.rect.x,new_pok.rect.top - 30,1,25,25)
+         type2b = Type(new_pok.type2,new_pok.rect.x + 30,new_pok.rect.top - 30,1,25,25)
+         type2_pokemon.add(type2a,type2b)
+
+
+
+   #print(len(player_pokemon_list))
+   if len(player_pokemon_list) == 0 and len(op_pokemon_list) == 0:
+      game_over3 = True
+      boton.kill()
+   elif len(player_pokemon_list) == 0:
+      boton.kill()
+      game_over2 = True
+   elif len(op_pokemon_list) == 0:
+      boton.kill()
+      game_over1 = True
+
+   
+
+   screen.fill(BLACK)
+   all_sprites.update()
+   # pokeball1.int = len(player_pokemon_list)
+   # pokeball2.int = len(op_pokemon_list)
+   pokeballs.update()
+   all_sprites.draw(screen)
+   type_pokemon.draw(screen)
+   type2_pokemon.draw(screen)
+   pokeballs.draw(screen)
+   for pok in all_sprites:
+      if pok.team_int == 0:
+         if pok.hp/player_pokemon_hp > 0.5:
+            draw_hp_bar(screen,pok.rect.x,pok.rect.y,(pok.hp/(player_pokemon_hp))*100)
+         elif pok.hp/player_pokemon_hp > 0.20:
+            draw_hp_bar2(screen,pok.rect.x,pok.rect.y,(pok.hp/(player_pokemon_hp))*100)
+         else:
+            draw_hp_bar3(screen,pok.rect.x,pok.rect.y,(pok.hp/(player_pokemon_hp))*100)
+         draw_text2(screen,f"{int(pok.hp)}/{player_pokemon_hp}",10,pok.rect.centerx,pok.rect.y)
+         draw_text1(screen,"ATTACK:",10,pok.rect.x,480)
+         draw_text1(screen,f"Pokemones: {len(player_pokemon_list)}",15,pok.rect.x,495)
+      else:
+         if pok.hp/op_pokemon_hp > 0.5:
+            draw_hp_bar(screen,pok.rect.x,pok.rect.y,(pok.hp/op_pokemon_hp)*100)
+         elif pok.hp/op_pokemon_hp > 0.20:
+            draw_hp_bar2(screen,pok.rect.x,pok.rect.y,(pok.hp/op_pokemon_hp)*100)
+         else:
+            draw_hp_bar3(screen,pok.rect.x,pok.rect.y,(pok.hp/op_pokemon_hp)*100)
+         draw_text2(screen,f"{int(pok.hp)}/{op_pokemon_hp}",10,pok.rect.centerx,pok.rect.y)
+         draw_text1(screen,"ATTACK:",10,pok.rect.x,280)
+         draw_text1(screen,f"Pokemones: {len(op_pokemon_list)}",15,pok.rect.x,295)
+   #screen.fill((BLACK))
+   x_offset = (WIDTH - boton.image.get_width())//2
+   y_offset = HEIGHT - 60
+   for y in range(pixeles_mostrados):
+      for x in range(60):
+         color = boton.image.get_at((x,60 -y-1))
+         screen.set_at((x + x_offset,HEIGHT - y -1),color)
+   pygame.display.update()
